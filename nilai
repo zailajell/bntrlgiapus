@@ -1,0 +1,322 @@
+nilai_migration
+Schema::create('nilais', function (Blueprint $table) {
+            $table->id();
+            $table->ForeignId('siswa_id')->constrained('siswas')->onDelete('cascade');
+            $table->ForeignId('detail_guru_id')->constrained('detail_gurus')->onDelete('cascade');
+            $table->integer('nilai');
+            $table->timestamps();
+        });
+
+nilai.controller
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Nilai;
+use App\Models\Siswa;
+use App\Models\DetailGuru;
+use Illuminate\Http\Request;
+
+class NilaiController extends Controller
+{
+
+    public function __construct(){
+        $this->middleware('auth');
+    }
+
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        $nilai = Nilai::with(['detailguru', 'siswa'])->oldest()->paginate(5);
+        // // dd($nilai->toArray());
+        // dd($nilai->toArray()['data']);
+
+        return view('nilai.index', compact('nilai'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        $siswa = Siswa::all();
+        $detailguru = DetailGuru::all();
+        return view('nilai.create', compact('siswa', 'detailguru'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'siswa_id' => 'required',
+            'detail_guru_id' => 'required',
+            'nilai' => 'required|numeric|min:0|max:100'
+        ]);
+
+        Nilai::create([
+            'siswa_id' => $request->siswa_id,
+            'detail_guru_id' => $request->detail_guru_id,
+            'nilai' => $request->nilai
+        ]);
+
+        return redirect()->route('nilai.index')->with(['success' => 'Data Berhasil Disimpan']);
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(Nilai $nilai)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(String $id)
+    {
+        $nilai = Nilai::findOrFail($id);
+        $detailguru = DetailGuru::all();
+        $siswa = Siswa::all();
+        return view('nilai.edit', compact('nilai', 'detailguru', 'siswa'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'siswa_id' => 'required',
+            'detail_guru_id' => 'required',
+            'nilai' => 'required|numeric|min:0|max:100'
+        ]);
+
+        $nilai = Nilai::findOrFail($id);
+
+        $nilai->update([
+            'siswa_id' => $request->siswa_id,
+            'detail_guru_id' => $request->detail_guru_id,
+            'nilai' => $request->nilai
+        ]);
+
+        return redirect()->route('nilai.index')->with(['success' => 'Data Berhasil Diubah']);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy($id)
+    {
+        $nilai = Nilai::findOrFail($id);
+        $nilai->delete();
+        return redirect()->route('nilai.index')->with(['success' => 'Data Berhasil Diubah']);
+    }
+}
+
+nilai.index
+@extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">{{ __('DATA NILAI') }}</div>
+
+                <div class="card-body">
+
+                    <a href="{{ route('home') }}" class="btn btn-dark my-4">BERANDA</a>
+                    <a href="{{ route('nilai.create') }}" class="btn btn-primary my-4">TAMBAH MAPEL</a>
+
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th class="text-center">NAMA SISWA</th>
+                                <th class="text-center">NAMA GURU</th>
+                                <th class="text-center">MAPEL</th>
+                                <th class="text-center">NILAI</th>
+                                <th class="text-center">AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($nilai as $s)
+                                <tr>
+                                    <td>{{ $s->siswa->nama_siswa }}</td>
+                                    <td>{{ $s->detailguru->guru->nama_guru }}</td>
+                                    <td>{{ $s->detailguru->mapel->nama_mapel }}</td>
+                                    <td>{{ $s->nilai }}</td>
+                                    <td>
+                                        <form onsubmit="return confirm('YAKIN?')" action="{{ route('nilai.destroy', $s->id) }}" method="post">
+                                            @csrf
+                                            @method('DELETE')
+                                            <a href="{{ route('nilai.edit', $s->id) }}" class="btn btn-warning">EDIT</a>
+                                            <a href="{{ route('nilai.show', $s->id) }}" class="btn btn-secondary">LIHAT</a>
+                                            <button type="submit" class="btn btn-danger">HAPUS</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @empty
+                                <div class="alert alert-danger">KOSONG</div>
+                            @endforelse
+                        </tbody>
+                    </table>
+                    {{ $nilai->links('pagination::bootstrap-5') }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+nilai.create
+@extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">{{ __('TAMBAH DATA NILAI') }}</div>
+
+                <div class="card-body">
+
+                    <a href="{{ route('home') }}" class="btn btn-secondary my-4">BERANDA</a>
+
+                    <form action="{{ route('nilai.store') }}" method="post">
+                        @csrf
+                        @if ($errors->any())
+                            <div class="alert alert-danger">
+                                @foreach ($errors->all() as $e)
+                                    <li>{{ $e }}</li>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <div class="form-group">
+                            <label for="">Nama Siswa</label>
+                            <select name="siswa_id" id="" class="form-control">
+                                <option value="" disabled selected>Pilih siswa</option>
+                                @foreach ($siswa as $s)
+                                    <option value="{{ $s->id }}">{{ $s->nama_siswa }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <hr>
+
+                        <div class="form-group">
+                            <label for="">Guru</label>
+                            <select name="detail_guru_id" id="" class="form-control">
+                                <option value="" disabled selected>Pilih Guru</option>
+                                @foreach ($detailguru as $g)
+                                    <option value="{{ $g->id }}">{{ $g->mapel->nama_mapel }} - {{ $g->guru->nama_guru }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <hr>
+
+                        <div class="form-group">
+                            <label for="">Nilai</label>
+                            <input type="number" name="nilai" id="" class="form-control">
+                        </div>
+
+                        <hr>
+
+                        <a href="{{ route('nilai.index') }}" class="btn btn-dark mt-4">KEMBALI</a>
+                        <button type="reset" class="btn btn-danger mt-4">RESET</button>
+                        <button type="submit" class="btn btn-success mt-4">SIMPAN</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+nilai.edit
+@extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">{{ __('TAMBAH DATA NILAI') }}</div>
+
+                <div class="card-body">
+
+                    <a href="{{ route('home') }}" class="btn btn-secondary my-4">BERANDA</a>
+
+                    <form action="{{ route('nilai.update', $nilai->id) }}" method="post">
+                        @csrf
+                        @method('PUT')
+                        @if ($errors->any())
+                            <div class="alert alert-danger">
+                                @foreach ($errors->all() as $e)
+                                    <li>{{ $e }}</li>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <div class="form-group">
+                            <label for="">Nama Siswa</label>
+                            <select name="siswa_id" id="" class="form-control">
+                                <option value="" disabled selected>Pilih siswa</option>
+                                @foreach ($siswa as $s)
+                                    <option value="{{ $s->id }}" {{ $nilai->siswa_id == $s->id ? 'selected' : ''}}>{{ $s->nama_siswa }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <hr>
+
+                        <div class="form-group">
+                            <label for="">Guru</label>
+                            <select name="detail_guru_id" id="" class="form-control">
+                                <option value="" disabled selected>Pilih Guru</option>
+                                @foreach ($detailguru as $g)
+                                    <option value="{{ $g->id }}" {{ $nilai->detail_guru_id == $g->id ? 'selected' : '' }}>{{ $g->mapel->nama_mapel }} - {{ $g->guru->nama_guru }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <hr>
+
+                        <div class="form-group">
+                            <label for="">Nilai</label>
+                            <input type="number" name="nilai" id="" class="form-control" value="{{ $nilai->nilai }}">
+                        </div>
+
+                        <hr>
+
+                        <a href="{{ route('nilai.index') }}" class="btn btn-dark mt-4">KEMBALI</a>
+                        <button type="reset" class="btn btn-danger mt-4">RESET</button>
+                        <button type="submit" class="btn btn-success mt-4">SIMPAN</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+nilai.php
+class Nilai extends Model
+{
+    use HasFactory;
+    protected $guarded = [''];
+
+    public function siswa(){
+        return $this->belongsTo(Siswa::class);
+    }
+
+    public function detailguru(){
+        return $this->belongsTo(DetailGuru::class,'detail_guru_id');
+    }
+}
