@@ -1,0 +1,216 @@
+dg_migration
+Schema::create('detail_gurus', function (Blueprint $table) {
+            $table->id();
+            $table->ForeignId('guru_id')->constrained('gurus')->onDelete('cascade');
+            $table->ForeignId('mapel_id')->constrained('mapels')->onDelete('cascade');
+            $table->timestamps();
+        });
+
+dg.controller
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\DetailGuru;
+use App\Models\Guru;
+use App\Models\Mapel;
+use Illuminate\Http\Request;
+
+class DetailGuruController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        $detailguru = DetailGuru::with(['guru', 'mapel'])->paginate(5);
+        return view('dg.index', compact('detailguru'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create(String $mapel)
+    {
+        $guru = Guru::all();
+        return view('dg.create', compact('guru', 'mapel'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'guru_id' => 'required',
+            'mapel_id' => 'required'
+        ]);
+
+        DetailGuru::create([
+            'guru_id' => $request->guru_id,
+            'mapel_id' => $request->mapel_id
+        ]);
+
+        return redirect()->route('mapel.show', $request->mapel_id)->with(['success' => 'Data Berhasil Disimpan']);
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(String $id)
+    {
+
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(String $id)
+    {
+        $guru = Guru::all();
+        $detailguru = DetailGuru::findOrFail($id);
+        return view('dg.edit', compact('detailguru', 'guru'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'guru_id' => 'required'
+        ]);
+
+        $detailguru = DetailGuru::findOrFail($id);
+
+        $detailguru->update([
+            'guru_id' => $request->guru_id
+        ]);
+
+        return redirect()->route('mapel.show', $detailguru->mapel_id)->with(['success' => 'Data Berhasil Diubah']);
+
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy($id)
+    {
+        $detailguru = DetailGuru::findOrFail($id);
+        $detailguru->delete();
+        return redirect()->route('mapel.show',$detailguru->mapel->id)->with(['success' => 'Data Berhasil Dihapus']);
+    }
+}
+
+
+dgcreate
+  @extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">{{ __('TAMBAH DATA DETAIL GURU') }}</div>
+
+                <div class="card-body">
+
+                    <a href="{{ route('home') }}" class="btn btn-secondary my-4">BERANDA</a>
+
+                    <form action="{{ route('dg.store') }}" method="post">
+                        @csrf
+                        @if ($errors->any())
+                            <div class="alert alert-danger">
+                                @foreach ($errors->all() as $e)
+                                    <li>{{ $e }}</li>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <input type="hidden" name="mapel_id" value="{{ $mapel }}">
+
+                        <div class="form-group">
+                            <label for="">Guru</label>
+                            <select name="guru_id" id="" class="form-control">
+                                <option value="" disabled selected>Pilih Guru</option>
+                                @foreach ($guru as $g)
+                                    <option value="{{ $g->id }}">{{ $g->nama_guru }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <hr>
+
+                        <a href="{{ route('mapel.show', $mapel) }}" class="btn btn-dark mt-4">KEMBALI</a>
+                        <button type="reset" class="btn btn-danger mt-4">RESET</button>
+                        <button type="submit" class="btn btn-success mt-4">SIMPAN</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+dg.edit
+  @extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">{{ __('TAMBAH DATA DETAIL GURU') }}</div>
+
+                <div class="card-body">
+
+                    <a href="{{ route('home') }}" class="btn btn-secondary my-4">BERANDA</a>
+
+                    <form action="{{ route('dg.update', $detailguru->id) }}" method="post">
+                        @csrf
+                        @method('PUT')
+                        @if ($errors->any())
+                            <div class="alert alert-danger">
+                                @foreach ($errors->all() as $e)
+                                    <li>{{ $e }}</li>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <div class="form-group">
+                            <label for="">Guru</label>
+                            <select name="guru_id" id="" class="form-control">
+                                <option value="" disabled>Pilih Guru</option>
+                                @foreach ($guru as $g)
+                                    <option value="{{ $g->id }}" {{ $detailguru->guru_id == $g->id ? 'selected' : ''}}>{{ $g->nama_guru }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <hr>
+
+                        <a href="{{ route('mapel.index') }}" class="btn btn-dark mt-4">KEMBALI</a>
+                        <button type="reset" class="btn btn-danger mt-4">RESET</button>
+                        <button type="submit" class="btn btn-success mt-4">SIMPAN</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+dg.php
+class DetailGuru extends Model
+{
+    use HasFactory;
+    protected $guarded = [''];
+    
+    public function guru(){
+        return $this->belongsTo(Guru::class);
+    }
+    public function mapel(){
+        return $this->belongsTo(Mapel::class);
+    }
+}
