@@ -1,0 +1,65 @@
+web.php:
+
+<?php
+use App\Http\Controllers\DetailGuruController;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
+|
+*/
+
+Route::get('/', function () {
+    return view('welcome');
+});
+
+Auth::routes();
+
+Route::get('/dg/create/{mapel}', [DetailGuruController::class, 'create'])->name('dg.create');
+
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::resource('/siswa', App\Http\Controllers\SiswaController::class);
+Route::resource('/guru', App\Http\Controllers\GuruController::class);
+Route::resource('/mapel', App\Http\Controllers\MapelController::class);
+Route::resource('/nilai', App\Http\Controllers\NilaiController::class);
+Route::resource('/dg', App\Http\Controllers\DetailGuruController::class)->except('create');
+
+
+home.blade:
+
+@extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">{{ __('Dashboard') }}</div>
+
+                <div class="card-body">
+                    @if (session('status'))
+                        <div class="alert alert-success" role="alert">
+                            {{ session('status') }}
+                        </div>
+                    @endif
+
+                    {{ __('You are logged in!') }}
+
+                    <hr>
+
+                    <a href="{{ route('siswa.index') }}" class="btn btn-dark form-control mt-2">SISWA</a>
+                    <a href="{{ route('guru.index') }}" class="btn btn-secondary form-control mt-2">GURU</a>
+                    <a href="{{ route('mapel.index') }}" class="btn btn-dark form-control mt-2">MAPEL</a>
+                    <a href="{{ route('nilai.index') }}" class="btn btn-secondary form-control mt-2">NILAI</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
