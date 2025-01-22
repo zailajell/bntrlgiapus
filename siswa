@@ -1,1 +1,291 @@
+siswa_migration
+
+Schema::create('gurus', function (Blueprint $table) {
+            $table->id();
+            $table->string('nip');
+            $table->string('nama_guru');
+            $table->string('no_hp');
+            $table->timestamps();
+        });
+
+siswa_controller
+
+siswa controller:
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Siswa;
+use Illuminate\Http\Request;
+
+class SiswaController extends Controller
+{
+
+    public function __construct(){
+        $this->middleware('auth');
+    }
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        $siswa = Siswa::paginate(5);
+        return view('siswa.index', compact('siswa'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        return view('siswa.create');
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nis' => 'required|min:4',
+            'nama_siswa' => 'required|min:3'
+        ]);
+
+        Siswa::create([
+            'nis' => $request->nis,
+            'nama_siswa' => $request->nama_siswa
+        ]);
+
+        return redirect()->route('siswa.index')->with(['success' => 'Data Berhasil Disimpan']);
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(String $id)
+    {
+        $siswa = Siswa::findOrFail($id);
+        return view('siswa.show', compact('siswa'));
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(String $id)
+    {
+        $siswa = Siswa::findOrFail($id);
+        return view('siswa.edit', compact('siswa'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'nis' => 'required|min:4',
+            'nama_siswa' => 'required|min:3'
+        ]);
+
+        $siswa = Siswa::findOrFail($id);
+
+        $siswa->update([
+            'nis' => $request->nis,
+            'nama_siswa' => $request->nama_siswa
+        ]);
+
+        return redirect()->route('siswa.index')->with(['success' => 'Data Berhasil Diubah']);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy($id)
+    {
+        $siswa = Siswa::findOrFail($id);
+        $siswa->delete();
+        return redirect()->route('siswa.index')->with(['success' => 'Data Berhasil Dihapus']);
+    }
+}
+
+siswa.index
+
+@extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">{{ __('DATA SISWA') }}</div>
+
+                <div class="card-body">
+
+                    <a href="{{ route('home') }}" class="btn btn-dark my-4">BERANDA</a>
+                    <a href="{{ route('siswa.create') }}" class="btn btn-primary my-4">TAMBAH SISWA</a>
+
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th class="text-center">NIS</th>
+                                <th class="text-center">NAMA SISWA</th>
+                                <th class="text-center">AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($siswa as $s)
+                                <tr>
+                                    <td>{{ $s->nis }}</td>
+                                    <td>{{ $s->nama_siswa }}</td>
+                                    <td>
+                                        <form onsubmit="return confirm('YAKIN?')" action="{{ route('siswa.destroy', $s->id) }}" method="post">
+                                            @csrf
+                                            @method('DELETE')
+                                            <a href="{{ route('siswa.edit', $s->id) }}" class="btn btn-warning">EDIT</a>
+                                            <a href="{{ route('siswa.show', $s->id) }}" class="btn btn-secondary">LIHAT</a>
+                                            <button type="submit" class="btn btn-danger">HAPUS</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @empty
+                                <div class="alert alert-danger">KOSONG</div>
+                            @endforelse
+                        </tbody>
+                    </table>
+                    {{ $siswa->links('pagination::bootstrap-5') }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+
+siswa.create
+
+@extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">{{ __('TAMBAH DATA SISWA') }}</div>
+
+                <div class="card-body">
+
+                    <a href="{{ route('home') }}" class="btn btn-secondary my-4">BERANDA</a>
+
+                    <form action="{{ route('siswa.store') }}" method="post">
+                        @csrf
+                        @if ($errors->any())
+                            <div class="alert alert-danger">
+                                @foreach ($errors->all() as $e)
+                                    <li>{{ $e }}</li>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <div class="form-group">
+                            <label for="">NIS</label>
+                            <input type="number" name="nis" id="" class="form-control mt-2" placeholder="masukkan nis...">
+                        </div>
+
+                        <hr>
+
+                        <div class="form-group">
+                            <label for="">Nama Siswa</label>
+                            <input type="text" name="nama_siswa" id="" class="form-control mt-2" placeholder="masukkan nama siswa....">
+                        </div>
+
+                        <a href="{{ route('siswa.index') }}" class="btn btn-dark mt-4">KEMBALI</a>
+                        <button type="reset" class="btn btn-danger mt-4">RESET</button>
+                        <button type="submit" class="btn btn-success mt-4">SIMPAN</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+siswa.edit
+
+@extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">{{ __('EDIT DATA SISWA') }}</div>
+
+                <div class="card-body">
+
+                    <a href="{{ route('home') }}" class="btn btn-secondary my-4">BERANDA</a>
+
+                    <form action="{{ route('siswa.update', $siswa->id) }}" method="post">
+                        @csrf
+                        @method('PUT')
+                        @if ($errors->any())
+                            <div class="alert alert-danger">
+                                @foreach ($errors->all() as $e)
+                                    <li>{{ $e }}</li>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <div class="form-group">
+                            <label for="">NIS</label>
+                            <input type="number" name="nis" id="" class="form-control mt-2" value="{{ $siswa->nis}}">
+                        </div>
+
+                        <hr>
+
+                        <div class="form-group">
+                            <label for="">Nama Siswa</label>
+                            <input type="text" name="nama_siswa" id="" class="form-control mt-2" value="{{ $siswa->nama_siswa }}">
+                        </div>
+
+                        <a href="{{ route('siswa.index') }}" class="btn btn-dark mt-4">KEMBALI</a>
+                        <button type="reset" class="btn btn-danger mt-4">RESET</button>
+                        <button type="submit" class="btn btn-success mt-4">SIMPAN</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+siswa.show
+
+@extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">{{ __('LIHAT DATA SISWA') }}</div>
+
+                <div class="card-body">
+
+                    <a href="{{ route('home') }}" class="btn btn-secondary my-4">BERANDA</a>
+
+                    <h3 class="text-center">{{ $siswa->nama_siswa }}</h3>
+                    <p>nis: {{ $siswa->nis }}</p>
+                </div>
+
+                <a href="{{ route('siswa.index') }}" class="btn btn-dark my-4">KEMBALI</a>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+
+
+
 
